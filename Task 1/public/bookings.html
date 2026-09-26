@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Book Property</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+      background-color: #f8f8f8;
+    }
+
+    form, .property {
+      background: white;
+      padding: 15px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    .property img {
+      max-width: 250px;
+      display: block;
+      margin-bottom: 10px;
+      border-radius: 6px;
+    }
+
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    input, button {
+      padding: 8px;
+      margin-top: 5px;
+      width: 320px;
+    }
+
+    button {
+      margin-top: 15px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>Book Property</h1>
+
+  <div class="property" id="propertyDetails">
+    Loading property details...
+  </div>
+
+  <form id="bookingForm">
+    <h2>Booking Details</h2>
+
+    <input type="hidden" id="listing_id" name="listing_id">
+
+    <label>Start Date</label>
+    <input type="date" name="startDate" required>
+
+    <label>End Date</label>
+    <input type="date" name="endDate" required>
+
+    <h2>Client Details</h2>
+
+    <label>Name</label>
+    <input type="text" name="name" required>
+
+    <label>Email Address</label>
+    <input type="email" name="emailAddress" required>
+
+    <label>Daytime Phone Number</label>
+    <input type="text" name="daytimePhoneNumber">
+
+    <label>Mobile Number</label>
+    <input type="text" name="mobileNumber" required>
+
+    <label>Postal Address</label>
+    <input type="text" name="postalAddress">
+
+    <label>Home Address</label>
+    <input type="text" name="homeAddress">
+
+    <br>
+    <button type="submit">Submit Booking</button>
+  </form>
+
+  <p><a href="/index.html">Back to homepage</a></p>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const listingId = params.get("listing_id");
+
+    document.getElementById("listing_id").value = listingId || "";
+
+    async function loadListingDetails() {
+      const propertyDetails = document.getElementById("propertyDetails");
+
+      if (!listingId) {
+        propertyDetails.innerHTML = "<p>No listing selected.</p>";
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/listing/" + encodeURIComponent(listingId));
+        const listing = await response.json();
+
+        if (listing.error) {
+          propertyDetails.innerHTML = "<p>Listing not found.</p>";
+          return;
+        }
+
+        const imageHtml = listing.picture_url
+          ? `<img src="${listing.picture_url}" alt="Listing image">`
+          : "";
+
+        propertyDetails.innerHTML = `
+          ${imageHtml}
+          <h2>${listing.name}</h2>
+          <p>${listing.summary}</p>
+          <p><strong>Daily Price:</strong> $${listing.price}</p>
+          <p><strong>Review Rating:</strong> ${listing.rating}</p>
+          <p><strong>Property Type:</strong> ${listing.property_type}</p>
+          <p><strong>Bedrooms:</strong> ${listing.bedrooms}</p>
+          <p><strong>Location:</strong> ${listing.market}, ${listing.country}</p>
+        `;
+      } catch (error) {
+        console.error(error);
+        propertyDetails.innerHTML = "<p>Error loading listing.</p>";
+      }
+    }
+
+    document.getElementById("bookingForm").addEventListener("submit", async function (event) {
+      event.preventDefault();
+
+      const formData = new FormData(event.target);
+      const bookingData = Object.fromEntries(formData.entries());
+
+      try {
+        const response = await fetch("/api/bookings", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(bookingData)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          window.location.href = "/confirmation.html?booking_id=" + encodeURIComponent(result.booking_id);
+        } else {
+          alert(result.error || "Booking failed.");
+        }
+      } catch (error) {
+        console.error(error);
+        alert("Error submitting booking.");
+      }
+    });
+
+    loadListingDetails();
+  </script>
+</body>
+</html>

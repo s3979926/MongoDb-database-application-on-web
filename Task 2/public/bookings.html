@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Book Property - Task 2</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+      background-color: #f8f8f8;
+    }
+
+    form, .property, .message {
+      background: white;
+      padding: 15px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    .property img {
+      max-width: 250px;
+      display: block;
+      margin-bottom: 10px;
+      border-radius: 6px;
+    }
+
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    input, button {
+      padding: 8px;
+      margin-top: 5px;
+      width: 320px;
+    }
+
+    input[readonly] {
+      background-color: #eeeeee;
+      color: #333333;
+    }
+
+    button {
+      margin-top: 15px;
+      cursor: pointer;
+    }
+
+    a {
+      color: #0066cc;
+    }
+
+    .note {
+      font-size: 14px;
+      color: #555555;
+    }
+
+    .error {
+      color: red;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Book Property - Task 2</h1>
+
+  <!-- Selected property information will be loaded here -->
+  <div class="property" id="propertyDetails">
+    Loading property details...
+  </div>
+
+  <!-- Booking form -->
+  <form id="bookingForm">
+    <h2>Selected Listing</h2>
+
+    <label>Listing ID</label>
+    <input type="text" id="listing_id_display" readonly>
+
+    <label>Listing Name</label>
+    <input type="text" id="listing_name_display" readonly>
+
+    <!-- This value is submitted to the backend -->
+    <input type="hidden" id="listing_id" name="listing_id">
+
+    <h2>Booking Details</h2>
+
+    <p class="note">
+      These dates were selected from the homepage search. The system will check availability again before saving the booking.
+    </p>
+
+    <label>Start Date</label>
+    <input type="date" id="startDate" name="startDate" required>
+
+    <label>End Date</label>
+    <input type="date" id="endDate" name="endDate" required>
+
+    <h2>Client Details</h2>
+
+    <label>Name</label>
+    <input type="text" name="name" required>
+
+    <label>Email Address</label>
+    <input type="email" name="emailAddress" required>
+
+    <label>Daytime Phone Number</label>
+    <input type="text" name="daytimePhoneNumber">
+
+    <label>Mobile Number</label>
+    <input type="text" name="mobileNumber" required>
+
+    <label>Postal Address</label>
+    <input type="text" name="postalAddress">
+
+    <label>Home Address</label>
+    <input type="text" name="homeAddress">
+
+    <br>
+    <button type="submit">Submit Booking</button>
+  </form>
+
+  <div class="message">
+    <a href="/index.html">Back to homepage</a>
+  </div>
+
+  <script>
+
+    // Read data passed from the homepage URL
+
+    const params = new URLSearchParams(window.location.search);
+
+    const listingId = params.get("listing_id");
+    const listingName = params.get("listing_name");
+    const startDate = params.get("startDate");
+    const endDate = params.get("endDate");
+
+    const listingIdInput = document.getElementById("listing_id");
+    const listingIdDisplay = document.getElementById("listing_id_display");
+    const listingNameDisplay = document.getElementById("listing_name_display");
+    const startDateInput = document.getElementById("startDate");
+    const endDateInput = document.getElementById("endDate");
+    const propertyDetails = document.getElementById("propertyDetails");
+
+    // Fill listing fields from URL
+  
+
+    listingIdInput.value = listingId || "";
+    listingIdDisplay.value = listingId || "";
+    listingNameDisplay.value = listingName || "";
+
+    
+    // Fill booking dates from homepage search
+  
+
+    if (startDate) {
+      startDateInput.value = startDate;
+    }
+
+    if (endDate) {
+      endDateInput.value = endDate;
+    }
+
+    
+    // Load selected listing details from backend
+  
+
+    async function loadListingDetails() {
+      if (!listingId) {
+        propertyDetails.innerHTML = "<p class='error'>No listing selected.</p>";
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/listing/" + encodeURIComponent(listingId));
+        const listing = await response.json();
+
+        if (!response.ok || listing.error) {
+          propertyDetails.innerHTML = "<p class='error'>Listing not found.</p>";
+          return;
+        }
+
+        // If listing name was not passed in URL, use the name from database
+        listingNameDisplay.value = listing.name || listingName || "";
+
+        const imageHtml = listing.picture_url
+          ? `<img src="${listing.picture_url}" alt="Listing image">`
+          : "";
+
+        propertyDetails.innerHTML = `
+          ${imageHtml}
+          <h2>${listing.name}</h2>
+          <p>${listing.summary}</p>
+          <p><strong>Listing ID:</strong> ${listing.id}</p>
+          <p><strong>Daily Price:</strong> $${listing.price}</p>
+          <p><strong>Review Rating:</strong> ${listing.rating}</p>
+          <p><strong>Property Type:</strong> ${listing.property_type}</p>
+          <p><strong>Bedrooms:</strong> ${listing.bedrooms}</p>
+          <p><strong>Location:</strong> ${listing.market}, ${listing.country}</p>
+        `;
+      } catch (error) {
+        console.error(error);
+        propertyDetails.innerHTML = "<p class='error'>Error loading listing.</p>";
+      }
+    }
+
+    
+    // Submit booking form
+    // The server must check availability again before saving booking
+   
+
+    document.getElementById("bookingForm").addEventListener("submit", async function (event) {
+      event.preventDefault();
+
+      const formData = new FormData(event.target);
+
+      const selectedStartDate = formData.get("startDate");
+      const selectedEndDate = formData.get("endDate");
+
+      if (!listingId) {
+        alert("No listing selected.");
+        return;
+      }
+
+      if (!selectedStartDate || !selectedEndDate) {
+        alert("Start date and end date are required.");
+        return;
+      }
+
+      if (new Date(selectedStartDate) >= new Date(selectedEndDate)) {
+        alert("End date must be after start date.");
+        return;
+      }
+
+      const bookingData = Object.fromEntries(formData.entries());
+
+      try {
+        const response = await fetch("/api/bookings", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(bookingData)
+        });
+
+        const result = await response.json();
+
+        // If booking is successful, go to confirmation page
+        if (result.success) {
+          window.location.href =
+            "/confirmation.html?status=success&booking_id=" +
+            encodeURIComponent(result.booking_id);
+          return;
+        }
+
+        // If booking fails because listing is unavailable, still go to confirmation page
+        window.location.href =
+          "/confirmation.html?status=failed&reason=" +
+          encodeURIComponent(result.error || "Booking failed.");
+      } catch (error) {
+        console.error(error);
+
+        window.location.href =
+          "/confirmation.html?status=failed&reason=" +
+          encodeURIComponent("Error submitting booking.");
+      }
+    });
+
+
+    loadListingDetails();
+  </script>
+</body>
+</html>

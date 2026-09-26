@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Booking Confirmation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+      background-color: #f8f8f8;
+    }
+
+    .box {
+      background: white;
+      padding: 20px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    a {
+      color: #0066cc;
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>Booking Confirmed</h1>
+    <p>Your booking has been saved successfully.</p>
+    <p><strong>Booking ID:</strong> <span id="bookingId"></span></p>
+    <p><a href="/index.html">Return to Homepage</a></p>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    document.getElementById("bookingId").textContent = params.get("booking_id") || "N/A";
+  </script>
+</body>
+</html>

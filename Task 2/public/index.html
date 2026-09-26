@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Airbnb Listings - Task 2</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+      background-color: #f8f8f8;
+    }
+
+    form, .listing {
+      background: white;
+      padding: 15px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    input, select, button {
+      padding: 8px;
+      margin-top: 5px;
+      width: 260px;
+    }
+
+    button {
+      margin-top: 15px;
+      cursor: pointer;
+    }
+
+    .listing img {
+      max-width: 250px;
+      display: block;
+      margin-bottom: 10px;
+      border-radius: 6px;
+    }
+
+    .listing a {
+      font-size: 20px;
+      font-weight: bold;
+      color: #0066cc;
+      text-decoration: none;
+    }
+
+    .listing a:hover {
+      text-decoration: underline;
+    }
+
+    .message {
+      background: white;
+      padding: 15px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Find an Available Airbnb Listing - Task 2</h1>
+
+  <form id="searchForm">
+    <label>Location</label>
+    <input type="text" name="location" placeholder="Example: Porto or Barcelona" required>
+
+    <label>Start Date</label>
+    <input type="date" name="startDate" required>
+
+    <label>End Date</label>
+    <input type="date" name="endDate" required>
+
+    <label>Property Type</label>
+    <select name="property_type">
+      <option value="">Any</option>
+      <option value="Apartment">Apartment</option>
+      <option value="House">House</option>
+      <option value="Condominium">Condominium</option>
+      <option value="Serviced apartment">Serviced apartment</option>
+      <option value="Loft">Loft</option>
+      <option value="Townhouse">Townhouse</option>
+    </select>
+
+    <label>Number of Bedrooms</label>
+    <select name="bedrooms">
+      <option value="">Any</option>
+      <option value="0">Studio / 0 bedrooms</option>
+      <option value="1">1 bedroom</option>
+      <option value="2">2 bedrooms</option>
+      <option value="3">3 bedrooms</option>
+      <option value="4">4 bedrooms</option>
+      <option value="5">5 bedrooms</option>
+    </select>
+
+    <br>
+    <button type="submit">Search Available Listings</button>
+  </form>
+
+  <h2 id="resultTitle">Random Listings</h2>
+  <div id="listings">Loading listings...</div>
+
+  <script>
+    const listingsDiv = document.getElementById("listings");
+    const resultTitle = document.getElementById("resultTitle");
+
+    async function loadListings(queryString = "") {
+      listingsDiv.innerHTML = '<div class="message">Loading listings...</div>';
+
+      try {
+        const response = await fetch("/api/listings" + queryString);
+        const data = await response.json();
+
+        if (!response.ok) {
+          listingsDiv.innerHTML = `<div class="message">${data.error || "Error loading listings."}</div>`;
+          return;
+        }
+
+        const listings = data;
+
+        if (!Array.isArray(listings) || listings.length === 0) {
+          listingsDiv.innerHTML = '<div class="message">No available listings found.</div>';
+          return;
+        }
+
+        listingsDiv.innerHTML = "";
+
+        const searchParams = new URLSearchParams(queryString);
+        const selectedStartDate = searchParams.get("startDate") || "";
+        const selectedEndDate = searchParams.get("endDate") || "";
+
+        listings.forEach(function (listing) {
+          const card = document.createElement("div");
+          card.className = "listing";
+
+          const imageHtml = listing.picture_url
+            ? `<img src="${listing.picture_url}" alt="Listing image">`
+            : "";
+
+          const bookingLink =
+            "/bookings.html" +
+            "?listing_id=" + encodeURIComponent(listing.id) +
+            "&listing_name=" + encodeURIComponent(listing.name) +
+            "&startDate=" + encodeURIComponent(selectedStartDate) +
+            "&endDate=" + encodeURIComponent(selectedEndDate);
+
+          card.innerHTML = `
+            ${imageHtml}
+            <a href="${bookingLink}">
+              ${listing.name}
+            </a>
+            <p>${listing.summary}</p>
+            <p><strong>Daily Price:</strong> $${listing.price}</p>
+            <p><strong>Review Rating:</strong> ${listing.rating}</p>
+            <p><strong>Property Type:</strong> ${listing.property_type}</p>
+            <p><strong>Bedrooms:</strong> ${listing.bedrooms}</p>
+            <p><strong>Location:</strong> ${listing.market}, ${listing.country}</p>
+          `;
+
+          listingsDiv.appendChild(card);
+        });
+      } catch (error) {
+        console.error(error);
+        listingsDiv.innerHTML = '<div class="message">Error loading listings.</div>';
+      }
+    }
+
+    document.getElementById("searchForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+
+      const formData = new FormData(event.target);
+      const startDate = formData.get("startDate");
+      const endDate = formData.get("endDate");
+
+      if (new Date(startDate) >= new Date(endDate)) {
+        listingsDiv.innerHTML = '<div class="message">End date must be after start date.</div>';
+        return;
+      }
+
+      const params = new URLSearchParams(formData);
+
+      resultTitle.textContent = "Available Listings";
+      loadListings("?" + params.toString());
+    });
+
+    loadListings();
+  </script>
+</body>
+</html>
